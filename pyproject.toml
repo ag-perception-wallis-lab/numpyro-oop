@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "numpyro-oop"
+version = "0.0.1"
+authors = [
+  { name="Thomas Wallis", email="thomas.wallis@tu-darmstadt.de" },
+]
+description = "A convenient object-oriented wrapper for working with numpyro models."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "numpyro",
+]
+license = {text = "MIT License"}
+keywords = ["numpyro", "probabilistic programming", "mcmc", "bayesian inference"]
+
+
