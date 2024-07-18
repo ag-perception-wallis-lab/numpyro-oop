@@ -19,7 +19,7 @@ classifiers = [
 dependencies = [
   "numpyro",
 ]
-license = {text = "MIT License"}
+license = { file = "LICENSE" }
 keywords = ["numpyro", "probabilistic programming", "mcmc", "bayesian inference"]
 
 

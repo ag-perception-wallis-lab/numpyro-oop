@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+numpyro = "*"
+
+[dev-packages]
+pytest = "*"
+black = "*"
+jupyterlab = "*"
+numpyro-oop = {file = ".", editable = true}
+
+[requires]
+python_version = "3.12"
