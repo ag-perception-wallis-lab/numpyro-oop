@@ -60,7 +60,6 @@ nest-asyncio==1.6.0; python_version >= '3.5'
 notebook-shim==0.2.4; python_version >= '3.7'
 numpy==2.0.0; python_version >= '3.9'
 numpyro==0.15.1; python_version >= '3.9'
--e .
 opt-einsum==3.3.0; python_version >= '3.5'
 overrides==7.7.0; python_version >= '3.6'
 packaging==24.1; python_version >= '3.8'
