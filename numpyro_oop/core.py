@@ -1,17 +1,24 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from enum import Enum
+from typing import Any, Optional
 
 from jax import random
 from numpyro.infer import MCMC, NUTS, Predictive
 
+__all__ = ["BaseNumpyroModel"]
+
+
+class SamplingKernelType(Enum):
+    nuts = NUTS
+
 
 class AbstractNumpyroModel(ABC):
     @abstractmethod
-    def sample(self):
+    def sample(self) -> None:
         pass
 
     @abstractmethod
-    def predict(self):
+    def predict(self) -> dict:
         pass
 
     @abstractmethod
@@ -38,30 +45,28 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         self,
         seed: int,
         data: Optional[Any] = None,
-        kernel_type: str = "nuts",
-        kernel_kwargs: Dict = {},
+        kernel_type: SamplingKernelType = SamplingKernelType.nuts,
+        kernel_kwargs: Optional[dict] = None,
     ) -> None:
         if data is not None:
             self.data = data
         else:
             self.data = None
 
-        self.rng_key = random.key(seed)
+        if kernel_kwargs is None:
+            kernel_kwargs = {}
 
-        if kernel_type.lower() == "nuts":
-            kernel = NUTS(self.model, **kernel_kwargs)
-        else:
-            raise NotImplementedError("Only the NUTS kernel is currently implemented.")
-        self.kernel = kernel
+        self.rng_key = random.key(seed)
+        self.kernel = kernel_type.value(self.model, **kernel_kwargs)
 
     def sample(
         self,
         num_samples: int = 1000,
         num_warmup: int = 1000,
         num_chains: int = 4,
-        model_kwargs: Dict = {},
-        mcmc_kwargs: Dict = {},
-    ):
+        model_kwargs: Optional[dict] = None,
+        mcmc_kwargs: Optional[dict] = None,
+    ) -> None:
         """
         Draw MCMC samples from the model.
 
@@ -76,10 +81,16 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         :param int num_samples: Number of samples to draw from the Markov chain.
         :param int num_warmup: Number of warmup steps.
         :param int num_chains: Number of chains.
-        :param Dict model_kwargs: Keyword arguments passed to the model.
-        :param Dict mcmc_kwargs: Keyword arguments passed to the MCMC object.
+        :param dict model_kwargs: Keyword arguments passed to the model.
+        :param dict mcmc_kwargs: Keyword arguments passed to the MCMC object.
             See https://num.pyro.ai/en/stable/mcmc.html.
         """
+
+        if mcmc_kwargs is None:
+            mcmc_kwargs = {}
+
+        if model_kwargs is None:
+            model_kwargs = {}
 
         self.mcmc = MCMC(
             self.kernel,
@@ -92,17 +103,16 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         # https://jax.readthedocs.io/en/latest/jax.random.html
         self.rng_key, sub_key = random.split(self.rng_key)
         self.mcmc.run(sub_key, data=self.data, **model_kwargs)
-        posterior_samples = self.mcmc.get_samples()
-        self.posterior_samples = posterior_samples
+        self.posterior_samples = self.mcmc.get_samples()
 
     def predict(
         self,
         data: Optional[Any] = None,
         prior: bool = False,
         num_samples=200,
-        model_kwargs: dict = {},
-        predictive_kwargs: dict = {},
-    ) -> Dict:
+        model_kwargs: Optional[dict] = None,
+        predictive_kwargs: Optional[dict] = None,
+    ) -> dict:
         """
         Create a predictive distribution.
 
@@ -115,18 +125,26 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         :param Any data: The data to predict. If None, will use the data passed at initialisation.
             If new data is passed, a predictive distribution will be generated for this new data.
         :param bool prior: If True, generates prior predictive samples.
-        :param int num_samples: The number of samples to generate.
-        :param Dict model_kwargs: Keyword arguments passed to the model.
-        :param Dict predictive_kwargs: Keyword arguments passed to the Predictive class.
+        :param int num_samples: The number of samples to generate. Due to an unexpected
+            numpyro behaviour, this will be ignored if prior is False (will use size of
+            posterior_samples).
+        :param dict model_kwargs: Keyword arguments passed to the model.
+        :param dict predictive_kwargs: Keyword arguments passed to the Predictive class.
 
-        :return Dict: A dictionary containing samples from the predictive distribution.
+        :return dict: A dictionary containing samples from the predictive distribution.
         """
         if data is None:
             data = self.data
+
         if prior:
             posterior_samples = None
         else:
             posterior_samples = self.posterior_samples
+
+        if model_kwargs is None:
+            model_kwargs = {}
+        if predictive_kwargs is None:
+            predictive_kwargs = {}
 
         predictive = Predictive(
             self.model,

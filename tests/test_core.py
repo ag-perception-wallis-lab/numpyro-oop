@@ -1,3 +1,4 @@
+import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
 import pandas as pd
@@ -14,13 +15,22 @@ class DummyModel(BaseNumpyroModel):
         b = numpyro.sample("b", dist.Normal(0.0, 1.0))
         M = b * data["x"].values
         sigma = numpyro.sample("sigma", dist.Exponential(1.0))
-        mu = a + M
+        mu = numpyro.deterministic("mu", a + M)
         numpyro.sample("obs", dist.Normal(mu, sigma), obs=data["y"].values)
 
 
 @pytest.fixture
 def dummy_data():
-    return pd.DataFrame({"x": [1, 2, 3, 4], "y": [0, 1, 1, 2]})
+    return pd.DataFrame(
+        {"x": [1.0, 2.0, 3.0, 4.0, 5.0, 10.0], "y": [0.0, 0.8, 1.2, 2.5, 3.2, 6.4]}
+    )
+
+
+@pytest.fixture
+def dummy_fitted(dummy_data):
+    model = DummyModel(seed=42, data=dummy_data)
+    model.sample(num_samples=500, num_warmup=500, num_chains=2)
+    return model
 
 
 def test_init(dummy_data):
@@ -41,8 +51,27 @@ def test_model_behavior_without_data():
 
 
 # Check model sampling runs
-def test_model_sample(dummy_data):
-    model = DummyModel(seed=42, data=dummy_data)
-    model.sample(num_samples=500, num_warmup=500, num_chains=2)
-    # how to test the values? Not deterministic.
-    # at least will throw an error if it doesn't run.
+def test_model_samples(dummy_fitted):
+    a_mean = dummy_fitted.posterior_samples["a"].mean()
+    b_mean = dummy_fitted.posterior_samples["b"].mean()
+    sigma_mean = dummy_fitted.posterior_samples["sigma"].mean()
+    sigma_sd = dummy_fitted.posterior_samples["sigma"].std()
+
+    # test against the "checked" reference values:
+    assert jnp.allclose(-0.595, a_mean, atol=0.01), f"Mean of a is incorrect: {a_mean}"
+    assert jnp.allclose(0.710, b_mean, atol=0.01), f"Mean of b is incorrect: {b_mean}"
+    assert jnp.allclose(
+        0.354, sigma_mean, atol=0.01
+    ), f"Mean of sigma is incorrect: {sigma_mean}"
+    assert jnp.allclose(
+        0.182, sigma_sd, atol=0.01
+    ), f"Sigma std is incorrect: {sigma_sd}"
+
+
+def test_posterior_predictive(dummy_fitted):
+    yhat = dummy_fitted.predict()["mu"]
+    assert yhat.shape == (1000, 6)
+    yhat_mean = yhat.mean()
+    assert jnp.allclose(
+        2.366, yhat_mean, atol=0.01
+    ), f"Yhat mean is incorrect: {yhat_mean}"
