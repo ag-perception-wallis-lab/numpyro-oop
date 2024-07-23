@@ -1,9 +1,8 @@
--i https://pypi.org/simple
 jax==0.4.30; python_version >= '3.9'
 jaxlib==0.4.30; python_version >= '3.9'
 ml-dtypes==0.4.0; python_version >= '3.9'
 multipledispatch==1.0.0
-numpy==2.0.0; python_version >= '3.9'
+numpy==2.0.1; python_version >= '3.9'
 numpyro==0.15.1; python_version >= '3.9'
 opt-einsum==3.3.0; python_version >= '3.5'
 scipy==1.14.0; python_version >= '3.10'

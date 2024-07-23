@@ -10,7 +10,9 @@ numpyro = "*"
 pytest = "*"
 black = "*"
 jupyterlab = "*"
-numpyro-oop = {file = ".", editable = true}
+ipykernel = "*"
+pandas = "*"
+graphviz = "*"
 
 [requires]
 python_version = "3.12"
