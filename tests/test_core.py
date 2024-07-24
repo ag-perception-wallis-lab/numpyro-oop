@@ -17,14 +17,14 @@ class DummyModel(BaseNumpyroModel):
         numpyro.sample("obs", dist.Normal(mu, sigma), obs=data["y"].values)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def dummy_data():
     return pd.DataFrame(
         {"x": [1.0, 2.0, 3.0, 4.0, 5.0, 10.0], "y": [0.0, 0.8, 1.2, 2.5, 3.2, 6.4]}
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def dummy_fitted(dummy_data):
     m1 = DummyModel(seed=42, data=dummy_data)
     m1.sample(num_samples=500, num_warmup=500, num_chains=2)
