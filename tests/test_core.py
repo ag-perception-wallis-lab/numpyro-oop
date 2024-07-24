@@ -9,8 +9,6 @@ from numpyro_oop.core import BaseNumpyroModel
 
 class DummyModel(BaseNumpyroModel):
     def model(self, data=None):
-        if data is None:
-            data = self.data
         a = numpyro.sample("a", dist.Normal(0.0, 1.0))
         b = numpyro.sample("b", dist.Normal(0.0, 1.0))
         M = b * data["x"].values
@@ -28,9 +26,9 @@ def dummy_data():
 
 @pytest.fixture
 def dummy_fitted(dummy_data):
-    model = DummyModel(seed=42, data=dummy_data)
-    model.sample(num_samples=500, num_warmup=500, num_chains=2)
-    return model
+    m1 = DummyModel(seed=42, data=dummy_data)
+    m1.sample(num_samples=500, num_warmup=500, num_chains=2)
+    return m1
 
 
 def test_init(dummy_data):
@@ -43,11 +41,11 @@ def test_init(dummy_data):
 
 # Check if the model raises an error or behaves unexpectedly when no data is provided
 def test_model_behavior_without_data():
-    model = DummyModel(seed=42)
+    m1 = DummyModel(seed=42)
     with pytest.raises(Exception):
-        model.sample()
+        m1.sample()
     with pytest.raises(Exception):
-        model.predict()
+        m1.predict()
 
 
 # Check model sampling runs

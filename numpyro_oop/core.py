@@ -3,9 +3,10 @@ from enum import Enum
 from typing import Any, Optional
 
 from jax import random
+from numpyro import render_model
 from numpyro.infer import MCMC, NUTS, Predictive
 
-__all__ = ["BaseNumpyroModel"]
+__all__ = ["BaseNumpyroModel", "SamplingKernelType"]
 
 
 class SamplingKernelType(Enum):
@@ -22,7 +23,15 @@ class AbstractNumpyroModel(ABC):
         pass
 
     @abstractmethod
-    def model(self, data: Optional[Any] = None):
+    def model(self, data: Optional[Any] = None) -> None:
+        pass
+
+    @abstractmethod
+    def _model(self, data: Optional[Any] = None) -> None:
+        pass
+
+    @abstractmethod
+    def render(self, kwargs: Optional[dict] = None):
         pass
 
 
@@ -30,41 +39,41 @@ class BaseNumpyroModel(AbstractNumpyroModel):
     """
     A BaseNumpyroModel provides the basic interface to numpyro-oop.
 
-
-    _extended_summary_
-
     :param int seed: Random seed
     :param data: Data for the model. Could be e.g. a Pandas dataframe. The model
         method is expected to know what to do with data. Defaults to None.
-    :param str kernel_type: Specify the type of MCMC kernel.
-        Currently only "nuts" is supported.
-    :param Dict kernel_kwargs: Keyword arguments passed to the MCMC kernel method.
     """
 
     def __init__(
         self,
         seed: int,
         data: Optional[Any] = None,
-        kernel_type: SamplingKernelType = SamplingKernelType.nuts,
-        kernel_kwargs: Optional[dict] = None,
     ) -> None:
-        if data is not None:
-            self.data = data
-        else:
-            self.data = None
-
-        if kernel_kwargs is None:
-            kernel_kwargs = {}
-
+        self.data = data
         self.rng_key = random.key(seed)
-        self.kernel = kernel_type.value(self.model, **kernel_kwargs)
+
+    def _model(
+        self, data: Optional[Any] = None, model_kwargs: Optional[dict] = None
+    ) -> None:
+        """
+        An internal model caller to perform runtime checks.
+
+        :param data: data for the model; will default to self.data if None.
+        :param model_kwargs: optional keyword arguments for the model.
+        """
+        if data is None:
+            data = self.data
+        model_kwargs = model_kwargs or {}
+        self.model(data=data, **model_kwargs)
 
     def sample(
         self,
         num_samples: int = 1000,
         num_warmup: int = 1000,
         num_chains: int = 4,
+        kernel_type: Optional[SamplingKernelType] = SamplingKernelType.nuts,
         model_kwargs: Optional[dict] = None,
+        kernel_kwargs: Optional[dict] = None,
         mcmc_kwargs: Optional[dict] = None,
     ) -> None:
         """
@@ -81,16 +90,19 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         :param int num_samples: Number of samples to draw from the Markov chain.
         :param int num_warmup: Number of warmup steps.
         :param int num_chains: Number of chains.
+        :param str kernel_type: Specify the type of MCMC kernel.
+            Currently only "nuts" is supported.
         :param dict model_kwargs: Keyword arguments passed to the model.
+        :param Dict kernel_kwargs: Keyword arguments passed to the MCMC kernel method.
         :param dict mcmc_kwargs: Keyword arguments passed to the MCMC object.
             See https://num.pyro.ai/en/stable/mcmc.html.
         """
 
-        if mcmc_kwargs is None:
-            mcmc_kwargs = {}
+        kernel_kwargs = kernel_kwargs or {}
+        mcmc_kwargs = mcmc_kwargs or {}
+        model_kwargs = model_kwargs or {}
 
-        if model_kwargs is None:
-            model_kwargs = {}
+        self.kernel = kernel_type.value(self._model, **kernel_kwargs)
 
         self.mcmc = MCMC(
             self.kernel,
@@ -141,13 +153,11 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         else:
             posterior_samples = self.posterior_samples
 
-        if model_kwargs is None:
-            model_kwargs = {}
-        if predictive_kwargs is None:
-            predictive_kwargs = {}
+        model_kwargs = model_kwargs or {}
+        predictive_kwargs = predictive_kwargs or {}
 
         predictive = Predictive(
-            self.model,
+            self._model,
             num_samples=num_samples,  # ignored if posterior_samples is not None
             posterior_samples=posterior_samples,
             **predictive_kwargs,
@@ -156,3 +166,28 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         self.rng_key, sub_key = random.split(self.rng_key)
         samples = predictive(sub_key, data=data, **model_kwargs)
         return samples
+
+    def render(
+        self,
+        render_distributions: bool = True,
+        render_params: bool = True,
+        kwargs: Optional[dict] = None,
+    ):
+        """
+        Function to render the model graph
+
+        Wrapper of https://num.pyro.ai/en/latest/utilities.html#numpyro.infer.inspect.render_model
+
+        :param bool render_distributions: Should RV distributions annotations be included.
+        :param bool render_params: Show params in the plot.
+        :param optional kwargs: Keyword arguments passed to render_model.
+        :return: The graphviz graph.
+        """
+        kwargs = kwargs or {}
+        graph = render_model(
+            self._model,
+            render_distributions=render_distributions,
+            render_params=render_params,
+            **kwargs,
+        )
+        return graph
