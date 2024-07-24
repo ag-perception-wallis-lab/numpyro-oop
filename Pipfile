@@ -5,13 +5,14 @@ name = "pypi"
 
 [packages]
 numpyro = "*"
+pandas = "*"
+arviz = "*"
 
 [dev-packages]
 pytest = "*"
 black = "*"
 jupyterlab = "*"
 ipykernel = "*"
-pandas = "*"
 graphviz = "*"
 
 [requires]
