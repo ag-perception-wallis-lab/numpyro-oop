@@ -14,9 +14,6 @@ It aims to remain model-agnostic, but package up a lot of the model fitting code
 - [ ] reparameterisation dictionary
 - [ ] arviz data export
 
-
-TODO: include docstring / doctest?
-
 ### Roadmap after initial release
 
 - [ ] better wrapping for `generate_arviz_data` (less user intervention)
