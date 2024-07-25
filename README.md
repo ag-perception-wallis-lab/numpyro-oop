@@ -8,7 +8,23 @@ It aims to remain model-agnostic, but package up a lot of the model fitting code
 
 ### A basic demo
 
+### TODO before initial release
+
+- [x] group variable plate notation
+- [ ] reparameterisation dictionary
+- [ ] arviz data export
+
+
 TODO: include docstring / doctest?
+
+### Roadmap after initial release
+
+- [ ] better wrapping for `generate_arviz_data` (less user intervention)
+- [ ] demo and tests for multiple group variables
+- [ ] include doctest, improved examples
+- [ ] export docs to some static page (readthedocs or similar); detail info on class methods and attributes
+- [ ] CI test setup
+- [ ] Contributor guidelines
 
 
 ### Development notes

@@ -1,7 +1,13 @@
+from logging import getLogger
+
+logger = getLogger(__name__)
+
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Optional
 
+import numpyro
 import pandas as pd
 from jax import random
 from numpyro import render_model
@@ -43,15 +49,31 @@ class BaseNumpyroModel(AbstractNumpyroModel):
     :param int seed: Random seed
     :param data: Data for the model. Currently only support Pandas dataframes. The model
         method is expected to know what to do with data. Defaults to None.
+    :param group_variables: Names of the variables in data that correspond to discrete
+        categories to be used for plates in the model (see https://num.pyro.ai/en/stable/primitives.html#plate).
+        A demo of plates can be found here: https://num.pyro.ai/en/stable/tutorials/bayesian_hierarchical_linear_regression.html.
+        String or list of strings.
     """
 
     def __init__(
         self,
         seed: int,
         data: Optional[pd.DataFrame] = None,
+        group_variables: Optional[list[str] | str] = None,
     ) -> None:
         self.data = data
+        self.group_variables = group_variables or []
         self.rng_key = random.key(seed)
+
+        if self.group_variables:
+            if type(self.group_variables) is str:
+                logger.debug(
+                    f"A single string was passed to group_variables; converting to list."
+                )
+                self.group_variables = [self.group_variables]
+            self._create_plates()
+        else:
+            self.plate_dicts = None
 
     def _model(
         self, data: Optional[pd.DataFrame] = None, model_kwargs: Optional[dict] = None
@@ -65,6 +87,9 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         if data is None:
             data = self.data
         model_kwargs = model_kwargs or {}
+        logger.info(
+            "\nThe following group variables are available for specifying plates: {self.group_variables}"
+        )
         self.model(data=data, **model_kwargs)
 
     def sample(
@@ -192,3 +217,59 @@ class BaseNumpyroModel(AbstractNumpyroModel):
             **kwargs,
         )
         return graph
+
+    @staticmethod
+    def _cats_to_dict(x: pd.Series) -> dict:
+        """
+        Turn Pandas categorical categories into a dict.
+
+        The dict is used for having an integer index to the
+        group member. The returned dict will have integer keys
+        and values equal to the categorical levels.
+
+        The Pandas Series must contain data of type categorical.
+        Can be set as .astype("category").
+
+        :param x: A pandas series containing categorical data.
+        """
+        return dict(enumerate(x.cat.categories))
+
+    def _create_plates(self, subsample_size: Optional[int] = None) -> None:
+        """
+        Create plates for model specification
+
+        This method will modify self.data and create a new dict-of-dicts
+        called self.plate_dicts. The plate_dicts contain information about
+        the plate defined by a categorical group in the data.
+
+        The modification to the data itself involves adding a new variable to the dataframe for
+        each group_variable (appending suffix "_id"), specifying
+        the mapping of group to numerical category
+        for each observation. This can be used in the model definition to
+        index the group membership of each observation.
+
+        :param subsample_size: Passed to numpyro.plate argument of the same name.
+        """
+        # TODO: include some test for if the
+        # dataset already contains a column with suffix _id
+        self.plate_dicts = {}
+        for i, group in enumerate(self.group_variables):
+            self.data[group] = self.data[group].astype("category")
+            self.data[group + "_id"] = self.data[group].cat.codes
+            logger.info(f"\nAdded new variable {group + "_id"} to self.data.")
+            coords = self._cats_to_dict(self.data[group])
+            dim = -(i + 1)
+            size = len(self.data[group + "_id"].unique())
+            idx = self.data[group + "_id"].values  # index of group in the data
+            self.plate_dicts[group] = {}
+            self.plate_dicts[group]["coords"] = coords
+            self.plate_dicts[group]["dim"] = dim
+            self.plate_dicts[group]["size"] = size
+            self.plate_dicts[group]["idx"] = idx
+            # create the actual plate object:
+            self.plate_dicts[group]["plate"] = numpyro.plate(
+                name=group, size=size, dim=dim, subsample_size=subsample_size
+            )
+
+    def model(self):
+        raise Warning("You must overrwrite the default model method!")
