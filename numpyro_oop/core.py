@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Optional
 
+import pandas as pd
 from jax import random
 from numpyro import render_model
 from numpyro.infer import MCMC, NUTS, Predictive
@@ -23,11 +24,11 @@ class AbstractNumpyroModel(ABC):
         pass
 
     @abstractmethod
-    def model(self, data: Optional[Any] = None) -> None:
+    def model(self, data: Optional[pd.DataFrame] = None) -> None:
         pass
 
     @abstractmethod
-    def _model(self, data: Optional[Any] = None) -> None:
+    def _model(self, data: Optional[pd.DataFrame] = None) -> None:
         pass
 
     @abstractmethod
@@ -40,20 +41,20 @@ class BaseNumpyroModel(AbstractNumpyroModel):
     A BaseNumpyroModel provides the basic interface to numpyro-oop.
 
     :param int seed: Random seed
-    :param data: Data for the model. Could be e.g. a Pandas dataframe. The model
+    :param data: Data for the model. Currently only support Pandas dataframes. The model
         method is expected to know what to do with data. Defaults to None.
     """
 
     def __init__(
         self,
         seed: int,
-        data: Optional[Any] = None,
+        data: Optional[pd.DataFrame] = None,
     ) -> None:
         self.data = data
         self.rng_key = random.key(seed)
 
     def _model(
-        self, data: Optional[Any] = None, model_kwargs: Optional[dict] = None
+        self, data: Optional[pd.DataFrame] = None, model_kwargs: Optional[dict] = None
     ) -> None:
         """
         An internal model caller to perform runtime checks.
@@ -119,7 +120,7 @@ class BaseNumpyroModel(AbstractNumpyroModel):
 
     def predict(
         self,
-        data: Optional[Any] = None,
+        data: Optional[pd.DataFrame] = None,
         prior: bool = False,
         num_samples=200,
         model_kwargs: Optional[dict] = None,
