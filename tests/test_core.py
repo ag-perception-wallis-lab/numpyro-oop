@@ -36,7 +36,7 @@ class DummyModelHierarchical(BaseNumpyroModel):
         numpyro.sample("obs", dist.Normal(mu, sigma), obs=data["y"].values)
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def dummy_data():
     return pd.DataFrame(
         {
@@ -47,14 +47,14 @@ def dummy_data():
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def dummy_fitted(dummy_data):
     m1 = DummyModel(seed=42, data=dummy_data)
     m1.sample(num_samples=500, num_warmup=500, num_chains=2)
     return m1
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def dummy_fitted_hierarchical(dummy_data):
     m2 = DummyModelHierarchical(
         seed=42, data=dummy_data, group_variables="a_categorical"

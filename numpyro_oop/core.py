@@ -20,29 +20,7 @@ class SamplingKernelType(Enum):
     nuts = NUTS
 
 
-class AbstractNumpyroModel(ABC):
-    @abstractmethod
-    def sample(self) -> None:
-        pass
-
-    @abstractmethod
-    def predict(self) -> dict:
-        pass
-
-    @abstractmethod
-    def model(self, data: Optional[pd.DataFrame] = None) -> None:
-        pass
-
-    @abstractmethod
-    def _model(self, data: Optional[pd.DataFrame] = None) -> None:
-        pass
-
-    @abstractmethod
-    def render(self, kwargs: Optional[dict] = None):
-        pass
-
-
-class BaseNumpyroModel(AbstractNumpyroModel):
+class BaseNumpyroModel(ABC):
     """
     A BaseNumpyroModel provides the basic interface to numpyro-oop.
 
@@ -63,7 +41,10 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         group_variables: Optional[list[str] | str] = None,
         create_plates_kwargs: Optional[dict] = None,
     ) -> None:
-        self.data = data
+        if data is not None:
+            self.data = data.copy()
+        else:
+            self.data = None
         self.group_variables = group_variables or []
         self.rng_key = random.key(seed)
 
