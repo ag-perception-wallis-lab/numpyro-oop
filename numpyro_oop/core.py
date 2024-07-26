@@ -3,7 +3,6 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-from abc import ABC
 from enum import Enum
 from typing import Optional
 
@@ -20,7 +19,7 @@ class SamplingKernelType(Enum):
     nuts = NUTS
 
 
-class BaseNumpyroModel(ABC):
+class BaseNumpyroModel:
     """
     A BaseNumpyroModel provides the basic interface to numpyro-oop.
 
