@@ -10,6 +10,7 @@ import numpyro
 import pandas as pd
 from jax import random
 from numpyro import render_model
+from numpyro.handlers import reparam
 from numpyro.infer import MCMC, NUTS, Predictive
 
 __all__ = ["BaseNumpyroModel", "SamplingKernelType"]
@@ -40,6 +41,7 @@ class BaseNumpyroModel:
         data: Optional[pd.DataFrame] = None,
         group_variables: Optional[list[str] | str] = None,
         create_plates_kwargs: Optional[dict] = None,
+        use_reparam: bool = True,
     ) -> None:
         if data is not None:
             self.data = data.copy()
@@ -58,6 +60,9 @@ class BaseNumpyroModel:
             self._create_plates(**create_plates_kwargs)
         else:
             self.plate_dicts = None
+
+        if use_reparam:
+            self.model = reparam(self.model, config=self.generate_reparam_config())
 
     def _model(
         self, data: Optional[pd.DataFrame] = None, model_kwargs: Optional[dict] = None
@@ -271,3 +276,11 @@ class BaseNumpyroModel:
 
     def model(self):
         raise NotImplementedError("You must overrwrite the default model method!")
+
+    def generate_reparam_config(self) -> dict:
+        logger.warning(
+            (
+                "No reparameterization currently defined. If you expect reparam=True to have any effect you must overwrite this method.",
+            )
+        )
+        return {}

@@ -4,6 +4,7 @@ import numpyro.distributions as dist
 import numpyro.primitives
 import pandas as pd
 import pytest
+from numpyro.infer.reparam import LocScaleReparam
 
 from numpyro_oop.core import BaseNumpyroModel
 
@@ -35,6 +36,14 @@ class DummyModelHierarchical(BaseNumpyroModel):
         mu = numpyro.deterministic("mu", a[idx] + M)
         numpyro.sample("obs", dist.Normal(mu, sigma), obs=data["y"].values)
 
+    def generate_reparam_config(self):
+        # a dictionary mapping site names to a Reparam.
+        # see https://num.pyro.ai/en/stable/handlers.html#numpyro.handlers.reparam
+        reparam_config = {
+            "a": LocScaleReparam(0),
+        }
+        return reparam_config
+
 
 @pytest.fixture(scope="session")
 def dummy_data():
@@ -49,18 +58,33 @@ def dummy_data():
 
 @pytest.fixture(scope="session")
 def dummy_fitted(dummy_data):
-    m1 = DummyModel(seed=42, data=dummy_data)
-    m1.sample(num_samples=500, num_warmup=500, num_chains=2)
-    return m1
+    m = DummyModel(seed=42, data=dummy_data)
+    m.sample(num_samples=500, num_warmup=500, num_chains=2)
+    return m
 
 
 @pytest.fixture(scope="session")
 def dummy_fitted_hierarchical(dummy_data):
-    m2 = DummyModelHierarchical(
-        seed=42, data=dummy_data, group_variables="a_categorical"
+    m = DummyModelHierarchical(
+        seed=42,
+        data=dummy_data,
+        group_variables="a_categorical",
+        use_reparam=False,
     )
-    m2.sample(num_samples=1000, num_warmup=1000, num_chains=3)
-    return m2
+    m.sample(num_samples=500, num_warmup=500, num_chains=2)
+    return m
+
+
+@pytest.fixture(scope="session")
+def dummy_fitted_hierarchical_reparam(dummy_data):
+    m = DummyModelHierarchical(
+        seed=42,
+        data=dummy_data,
+        group_variables="a_categorical",
+        use_reparam=True,
+    )
+    m.sample(num_samples=500, num_warmup=500, num_chains=2)
+    return m
 
 
 def test_init(dummy_data):
@@ -147,8 +171,13 @@ def test_posterior_predictive(dummy_fitted):
 # Check hierarchical sampling runs
 def test_model_samples_hierarchical(dummy_fitted_hierarchical):
     posterior_samples = dummy_fitted_hierarchical.posterior_samples
-    assert posterior_samples["a_mu"].shape == (3000,)
-    assert posterior_samples["a"].shape == (3000, 2)
+    assert posterior_samples["a_mu"].shape == (1000,)
+    assert posterior_samples["a"].shape == (1000, 2)
+
+    assert (
+        not "a_decentered" in posterior_samples.keys()
+    )  # check that reparam vars exist
+
     a_mu_mean = posterior_samples["a_mu"].mean()
     a_mean = posterior_samples["a"].mean()
     b_mean = posterior_samples["b"].mean()
@@ -157,13 +186,40 @@ def test_model_samples_hierarchical(dummy_fitted_hierarchical):
 
     # test against the "checked" reference values:
     assert jnp.allclose(
-        -0.378, a_mu_mean, atol=0.01
+        -0.358, a_mu_mean, atol=0.01
     ), f"Mean of a_mu is incorrect: {a_mu_mean}"
     assert jnp.allclose(-0.534, a_mean, atol=0.01), f"Mean of a is incorrect: {a_mean}"
     assert jnp.allclose(0.695, b_mean, atol=0.01), f"Mean of b is incorrect: {b_mean}"
     assert jnp.allclose(
-        0.412, sigma_mean, atol=0.01
+        0.423, sigma_mean, atol=0.01
     ), f"Mean of sigma is incorrect: {sigma_mean}"
     assert jnp.allclose(
         0.221, sigma_sd, atol=0.01
+    ), f"Sigma std is incorrect: {sigma_sd}"
+
+
+def test_model_samples_hierarchical_reparam(dummy_fitted_hierarchical_reparam):
+    posterior_samples = dummy_fitted_hierarchical_reparam.posterior_samples
+    assert posterior_samples["a_mu"].shape == (1000,)
+    assert posterior_samples["a"].shape == (1000, 2)
+
+    assert "a_decentered" in posterior_samples.keys()  # shouldn't be using reparam.
+
+    a_mu_mean = posterior_samples["a_mu"].mean()
+    a_mean = posterior_samples["a"].mean()
+    b_mean = posterior_samples["b"].mean()
+    sigma_mean = posterior_samples["sigma"].mean()
+    sigma_sd = posterior_samples["sigma"].std()
+
+    # test against the "checked" reference values:
+    assert jnp.allclose(
+        -0.428, a_mu_mean, atol=0.01
+    ), f"Mean of a_mu is incorrect: {a_mu_mean}"
+    assert jnp.allclose(-0.545, a_mean, atol=0.01), f"Mean of a is incorrect: {a_mean}"
+    assert jnp.allclose(0.695, b_mean, atol=0.01), f"Mean of b is incorrect: {b_mean}"
+    assert jnp.allclose(
+        0.424, sigma_mean, atol=0.01
+    ), f"Mean of sigma is incorrect: {sigma_mean}"
+    assert jnp.allclose(
+        0.242, sigma_sd, atol=0.01
     ), f"Sigma std is incorrect: {sigma_sd}"
