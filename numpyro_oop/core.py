@@ -3,9 +3,9 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
 import numpyro
 import pandas as pd
