@@ -11,7 +11,7 @@ It aims to remain model-agnostic, but package up a lot of the model fitting code
 ### TODO before initial release
 
 - [x] group variable plate notation
-- [ ] reparameterisation dictionary
+- [x] reparameterisation dictionary
 - [ ] arviz data export
 
 ### Roadmap after initial release
