@@ -22,15 +22,13 @@ It aims to remain model-agnostic, but package up a lot of the model fitting code
 - [ ] export docs to some static page (readthedocs or similar); detail info on class methods and attributes
 - [ ] CI test setup
 - [ ] Contributor guidelines
+- [ ] Fix type hints via linter checks
 
 
 ### Development notes
 
-1. `pipenv install`
-2. `pipenv requirements > requirements.txt`
-3. `pipenv requirements --dev-only > requirements-dev.txt`
-4. Remove first line (`-i ...`) from the two requirements files.
-5. install local package with `pipenv run pip install -e ".[dev]"`
+- Update dependencies with `make update-deps`
+- Update and (re)install the environment with `make update-and-install`
 
 
 
