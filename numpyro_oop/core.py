@@ -53,6 +53,7 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         categories to be used for plates in the model (see https://num.pyro.ai/en/stable/primitives.html#plate).
         A demo of plates can be found here: https://num.pyro.ai/en/stable/tutorials/bayesian_hierarchical_linear_regression.html.
         String or list of strings.
+    :param create_plates_kwargs: Keyword arguments passed to the internal _create_plates function.
     """
 
     def __init__(
@@ -60,6 +61,7 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         seed: int,
         data: Optional[pd.DataFrame] = None,
         group_variables: Optional[list[str] | str] = None,
+        create_plates_kwargs: Optional[dict] = None,
     ) -> None:
         self.data = data
         self.group_variables = group_variables or []
@@ -71,7 +73,8 @@ class BaseNumpyroModel(AbstractNumpyroModel):
                     f"A single string was passed to group_variables; converting to list."
                 )
                 self.group_variables = [self.group_variables]
-            self._create_plates()
+            create_plates_kwargs = create_plates_kwargs or {}
+            self._create_plates(**create_plates_kwargs)
         else:
             self.plate_dicts = None
 
@@ -234,7 +237,9 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         """
         return dict(enumerate(x.cat.categories))
 
-    def _create_plates(self, subsample_size: Optional[int] = None) -> None:
+    def _create_plates(
+        self, variable_suffix: str = "_id", subsample_size: Optional[int] = None
+    ) -> None:
         """
         Create plates for model specification
 
@@ -243,24 +248,36 @@ class BaseNumpyroModel(AbstractNumpyroModel):
         the plate defined by a categorical group in the data.
 
         The modification to the data itself involves adding a new variable to the dataframe for
-        each group_variable (appending suffix "_id"), specifying
+        each group_variable (appending suffix "variable_suffix"), specifying
         the mapping of group to numerical category
         for each observation. This can be used in the model definition to
         index the group membership of each observation.
 
+        :param str variable_suffix: The suffix to append to the grouping variables in the dataframe.
         :param subsample_size: Passed to numpyro.plate argument of the same name.
         """
-        # TODO: include some test for if the
-        # dataset already contains a column with suffix _id
+        columns_with_suffix = [
+            col for col in self.data.columns if col.endswith(variable_suffix)
+        ]
+        if any(columns_with_suffix):
+            msg = (
+                f"The dataframe contains columns with the suffix {variable_suffix} already: \n{columns_with_suffix}\n"
+                f"Change the suffix to avoid conflicts by passing a new variable_suffix to _create_plates at instance construction."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+
         self.plate_dicts = {}
         for i, group in enumerate(self.group_variables):
             self.data[group] = self.data[group].astype("category")
-            self.data[group + "_id"] = self.data[group].cat.codes
-            logger.info(f"\nAdded new variable {group + "_id"} to self.data.")
+            self.data[group + variable_suffix] = self.data[group].cat.codes
+            logger.info(f"\nAdded new variable {group + variable_suffix} to self data.")
             coords = self._cats_to_dict(self.data[group])
             dim = -(i + 1)
-            size = len(self.data[group + "_id"].unique())
-            idx = self.data[group + "_id"].values  # index of group in the data
+            size = len(self.data[group + variable_suffix].unique())
+            idx = self.data[
+                group + variable_suffix
+            ].values  # index of group in the data
             self.plate_dicts[group] = {}
             self.plate_dicts[group]["coords"] = coords
             self.plate_dicts[group]["dim"] = dim
@@ -272,4 +289,4 @@ class BaseNumpyroModel(AbstractNumpyroModel):
             )
 
     def model(self):
-        raise Warning("You must overrwrite the default model method!")
+        raise NotImplementedError("You must overrwrite the default model method!")

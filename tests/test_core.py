@@ -36,7 +36,7 @@ class DummyModelHierarchical(BaseNumpyroModel):
         numpyro.sample("obs", dist.Normal(mu, sigma), obs=data["y"].values)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def dummy_data():
     return pd.DataFrame(
         {
@@ -47,20 +47,20 @@ def dummy_data():
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def dummy_fitted(dummy_data):
     m1 = DummyModel(seed=42, data=dummy_data)
     m1.sample(num_samples=500, num_warmup=500, num_chains=2)
     return m1
 
 
-@pytest.fixture(scope="session")
-def dummy_fitted_hierarhical(dummy_data):
-    m1 = DummyModelHierarchical(
+@pytest.fixture()
+def dummy_fitted_hierarchical(dummy_data):
+    m2 = DummyModelHierarchical(
         seed=42, data=dummy_data, group_variables="a_categorical"
     )
-    m1.sample(num_samples=1000, num_warmup=1000, num_chains=3)
-    return m1
+    m2.sample(num_samples=1000, num_warmup=1000, num_chains=3)
+    return m2
 
 
 def test_init(dummy_data):
@@ -94,6 +94,18 @@ def test_init_with_group(dummy_data):
         m1.plate_dicts["a_categorical"]["idx"], jnp.array([0, 1, 0, 1, 0, 1])
     )
     assert type(m1.plate_dicts["a_categorical"]["plate"]) == numpyro.primitives.plate
+
+
+def test_create_plates_suffix():
+    df = pd.DataFrame({"dummy_id": ["A", "B", "C"]})
+    with pytest.raises(Exception):
+        m1 = BaseNumpyroModel(seed=42, data=df, group_variables="dummy_id")
+    m1 = BaseNumpyroModel(
+        seed=42,
+        data=df,
+        group_variables="dummy_id",
+        create_plates_kwargs={"variable_suffix": "_blah"},
+    )
 
 
 # Check if the model raises an error or behaves unexpectedly when no data is provided
@@ -133,14 +145,15 @@ def test_posterior_predictive(dummy_fitted):
 
 
 # Check hierarchical sampling runs
-def test_model_samples_hierarchical(dummy_fitted_hierarhical):
-    assert dummy_fitted_hierarhical.posterior_samples["a_mu"].shape == (3000,)
-    assert dummy_fitted_hierarhical.posterior_samples["a"].shape == (3000, 2)
-    a_mu_mean = dummy_fitted_hierarhical.posterior_samples["a_mu"].mean()
-    a_mean = dummy_fitted_hierarhical.posterior_samples["a"].mean()
-    b_mean = dummy_fitted_hierarhical.posterior_samples["b"].mean()
-    sigma_mean = dummy_fitted_hierarhical.posterior_samples["sigma"].mean()
-    sigma_sd = dummy_fitted_hierarhical.posterior_samples["sigma"].std()
+def test_model_samples_hierarchical(dummy_fitted_hierarchical):
+    posterior_samples = dummy_fitted_hierarchical.posterior_samples
+    assert posterior_samples["a_mu"].shape == (3000,)
+    assert posterior_samples["a"].shape == (3000, 2)
+    a_mu_mean = posterior_samples["a_mu"].mean()
+    a_mean = posterior_samples["a"].mean()
+    b_mean = posterior_samples["b"].mean()
+    sigma_mean = posterior_samples["sigma"].mean()
+    sigma_sd = posterior_samples["sigma"].std()
 
     # test against the "checked" reference values:
     assert jnp.allclose(
