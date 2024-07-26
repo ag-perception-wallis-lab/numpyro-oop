@@ -41,7 +41,7 @@ class BaseNumpyroModel:
         data: Optional[pd.DataFrame] = None,
         group_variables: Optional[list[str] | str] = None,
         create_plates_kwargs: Optional[dict] = None,
-        use_reparam: bool = True,
+        use_reparam: bool = False,
     ) -> None:
         if data is not None:
             self.data = data.copy()
