@@ -6,6 +6,7 @@ logger = getLogger(__name__)
 from enum import Enum
 from typing import Optional
 
+import arviz as az
 import numpyro
 import pandas as pd
 from jax import random
@@ -66,6 +67,9 @@ class BaseNumpyroModel:
         if use_reparam:
             self.model = reparam(self.model, config=self.generate_reparam_config())
 
+        self.posterior_samples = None
+        self.arviz_data = None
+
     def _model(
         self, data: Optional[pd.DataFrame] = None, model_kwargs: Optional[dict] = None
     ) -> None:
@@ -92,6 +96,8 @@ class BaseNumpyroModel:
         model_kwargs: Optional[dict] = None,
         kernel_kwargs: Optional[dict] = None,
         mcmc_kwargs: Optional[dict] = None,
+        generate_arviz_data: Optional[bool] = False,
+        generate_arviz_data_kwargs: Optional[dict] = None,
     ) -> None:
         """
         Draw MCMC samples from the model.
@@ -113,11 +119,16 @@ class BaseNumpyroModel:
         :param Dict kernel_kwargs: Keyword arguments passed to the MCMC kernel method.
         :param dict mcmc_kwargs: Keyword arguments passed to the MCMC object.
             See https://num.pyro.ai/en/stable/mcmc.html.
+        :param bool generate_arviz_data: If True, generate arviz data and store in the
+            model object. Equivalent to running self.generate_arviz_data.
+        :param dict generate_arviz_data_kwargs: Keyword arguments passed to the
+            generate_arviz_data method. If None, default arguments will be used.
         """
 
         kernel_kwargs = kernel_kwargs or {}
         mcmc_kwargs = mcmc_kwargs or {}
         model_kwargs = model_kwargs or {}
+        generate_arviz_data_kwargs = generate_arviz_data_kwargs or {}
 
         self.kernel = kernel_type.value(self._model, **kernel_kwargs)
 
@@ -133,6 +144,9 @@ class BaseNumpyroModel:
         self.rng_key, sub_key = random.split(self.rng_key)
         self.mcmc.run(sub_key, data=self.data, **model_kwargs)
         self.posterior_samples = self.mcmc.get_samples()
+
+        if generate_arviz_data:
+            self.generate_arviz_data(**generate_arviz_data_kwargs)
 
     def predict(
         self,
@@ -158,7 +172,7 @@ class BaseNumpyroModel:
             numpyro behaviour, this will be ignored if prior is False (will use size of
             posterior_samples).
         :param dict model_kwargs: Keyword arguments passed to the model.
-        :param dict predictive_kwargs: Keyword arguments passed to the Predictive class.
+        :param dict predictive_kwargs: Keyword arguments passed to Numpyro's Predictive class.
 
         :return dict: A dictionary containing samples from the predictive distribution.
         """
@@ -168,6 +182,14 @@ class BaseNumpyroModel:
         if prior:
             posterior_samples = None
         else:
+            if self.posterior_samples is None:
+                raise ValueError(
+                    (
+                        "You tried to generate posterior predictions, but you haven't"
+                        " sampled from the model yet! "
+                        "You must first run the 'sample' method."
+                    )
+                )
             posterior_samples = self.posterior_samples
 
         model_kwargs = model_kwargs or {}
@@ -250,7 +272,8 @@ class BaseNumpyroModel:
         if any(columns_with_suffix):
             msg = (
                 f"The dataframe contains columns with the suffix {variable_suffix} already: \n{columns_with_suffix}\n"
-                f"Change the suffix to avoid conflicts by passing a new variable_suffix to _create_plates at instance construction."
+                "Change the suffix to avoid conflicts by passing a new variable_suffix "
+                "to _create_plates at instance construction."
             )
             logger.error(msg)
             raise ValueError(msg)
@@ -282,7 +305,92 @@ class BaseNumpyroModel:
     def generate_reparam_config(self) -> dict:
         logger.warning(
             (
-                "No reparameterization currently defined. If you expect reparam=True to have any effect you must overwrite this method.",
+                "No reparameterization currently defined. "
+                "If you expect reparam=True to have any effect you "
+                "must overwrite this method.",
             )
         )
         return {}
+
+    def generate_arviz_data(
+        self,
+        num_samples: int = 1000,
+        dims: Optional[dict] = None,
+        model_kwargs: Optional[dict] = None,
+        predictive_kwargs: Optional[dict] = None,
+        from_numpyro_kwargs: Optional[dict] = None,
+    ) -> None:
+        """
+        Generate data in the arviz format
+
+        This method allows you to generate an InferenceData
+        object suitable for use with Arviz. The method is mostly
+        a wrapper for Arviz' function from_numpryo.
+
+        It will generate both posterior and prior predictive samples
+        using the predict method.
+
+        To improve the meaning of InferenceData further, this
+        method tries to intelligently add information from the plates
+        in plate_dict to the coordinates of the arviz data.
+        When using plates in your model, you can also pass a dictionary
+        to the `dims` argument. This dictionary should specify
+        the correspondence between the plate name (same as the
+        variable in the dataframe corresponding to the group) and
+        the model node. Example below.
+
+        :param num_samples: The number of samples to generate from
+            the predictive distribution(s).
+        :param dict[str] -> list[str] dims: A dictionary specifying the
+            correspondence between data labels (coordinates) and
+            inference nodes (model variables).
+            Example: {"model_param_a": ["data_variable_g"]}.
+        :param model_kwargs: Keyword arguments passed to the model.
+        :param dict predictive_kwargs: Keyword arguments passed to
+            Numpyro's Predictive class.
+        :param from_numpyro_kwargs: Keyword arguments passed to arviz's
+            from_numpyro function.
+        """
+        model_kwargs = model_kwargs or {}
+        predictive_kwargs = predictive_kwargs or {}
+        from_numpyro_kwargs = from_numpyro_kwargs or {}
+
+        posterior_predictive = self.predict(
+            prior=False,
+            num_samples=num_samples,
+            model_kwargs=model_kwargs,
+            predictive_kwargs=predictive_kwargs,
+        )
+
+        prior = self.predict(
+            prior=True,
+            num_samples=num_samples,
+            model_kwargs=model_kwargs,
+            predictive_kwargs=predictive_kwargs,
+        )
+
+        if "coords" in from_numpyro_kwargs.keys():
+            logger.warning(
+                (
+                    "You tried to pass coords to from_numpyro_kwargs,"
+                    " but this should be handled internally by numpyro-oop. "
+                    "Your option will be ignored."
+                )
+            )
+
+        if self.plate_dicts is not None:
+            coords = {}
+            for plate in self.plate_dicts.keys():
+                coords[plate] = list(self.plate_dicts[plate]["coords"].values())
+        else:
+            coords = None
+
+        arviz_data = az.from_numpyro(
+            self.mcmc,
+            prior=prior,
+            posterior_predictive=posterior_predictive,
+            coords=coords,
+            dims=dims,
+            **from_numpyro_kwargs,
+        )
+        self.arviz_data = arviz_data

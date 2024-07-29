@@ -141,6 +141,12 @@ def test_model_behavior_without_data():
         m1.predict()
 
 
+def test_no_predict_without_sampling(dummy_data):
+    m = DummyModel(seed=42, data=dummy_data)
+    with pytest.raises(Exception):
+        m.predict()
+
+
 # Check model sampling runs
 def test_model_samples(dummy_fitted):
     a_mean = dummy_fitted.posterior_samples["a"].mean()
@@ -166,6 +172,18 @@ def test_posterior_predictive(dummy_fitted):
     assert jnp.allclose(
         2.366, yhat_mean, atol=0.01
     ), f"Yhat mean is incorrect: {yhat_mean}"
+
+
+def test_generate_arviz_data(dummy_fitted):
+    dummy_fitted.generate_arviz_data()
+    assert dummy_fitted.arviz_data is not None
+    # TODO add more specific tests here.
+
+
+def test_generate_arviz_data_auto(dummy_data):
+    m1 = DummyModel(seed=23, data=dummy_data)
+    m1.sample(num_samples=500, num_warmup=500, num_chains=2, generate_arviz_data=True)
+    assert m1.arviz_data is not None
 
 
 # Check hierarchical sampling runs
@@ -223,3 +241,9 @@ def test_model_samples_hierarchical_reparam(dummy_fitted_hierarchical_reparam):
     assert jnp.allclose(
         0.242, sigma_sd, atol=0.01
     ), f"Sigma std is incorrect: {sigma_sd}"
+
+
+def test_generate_arviz_data_hierarchical(dummy_fitted_hierarchical_reparam):
+    dummy_fitted_hierarchical_reparam.generate_arviz_data(dims={"a": ["a_categorical"]})
+    assert dummy_fitted_hierarchical_reparam.arviz_data is not None
+    # TODO more specific tests to check that group assignment / dims are correct
