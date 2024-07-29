@@ -21,20 +21,6 @@ class SamplingKernelType(Enum):
 
 
 class BaseNumpyroModel:
-    """
-    A BaseNumpyroModel provides the basic interface to numpyro-oop.
-
-    :param int seed: Random seed
-    :param data: Data for the model. Currently only support Pandas dataframes. The model
-        method is expected to know what to do with data. Note that a copy of the passed
-        dataframe is taken, to avoid unanticipated effects on the outer-scope dataframe.
-    :param group_variables: Names of the variables in data that correspond to discrete
-        categories to be used for plates in the model (see https://num.pyro.ai/en/stable/primitives.html#plate).
-        A demo of plates can be found here: https://num.pyro.ai/en/stable/tutorials/bayesian_hierarchical_linear_regression.html.
-        String or list of strings.
-    :param create_plates_kwargs: Keyword arguments passed to the internal _create_plates function.
-    """
-
     def __init__(
         self,
         seed: int,
@@ -43,6 +29,22 @@ class BaseNumpyroModel:
         create_plates_kwargs: Optional[dict] = None,
         use_reparam: bool = False,
     ) -> None:
+        """
+        A BaseNumpyroModel provides the basic interface to numpyro-oop.
+
+        :param int seed: Random seed
+        :param data: Data for the model. Currently only support Pandas dataframes. The model
+            method is expected to know what to do with data. Note that a copy of the passed
+            dataframe is taken, to avoid unanticipated effects on the outer-scope dataframe.
+        :param group_variables: Names of the variables in data that correspond to discrete
+            categories to be used for plates in the model (see https://num.pyro.ai/en/stable/primitives.html#plate).
+            A demo of plates can be found here: https://num.pyro.ai/en/stable/tutorials/bayesian_hierarchical_linear_regression.html.
+            String or list of strings.
+        :param create_plates_kwargs: Keyword arguments passed to the internal _create_plates function.
+        :param bool use_reparam: If true, apply the reparameterization specified in the generate_reparam_config
+            method to the model. This anticipates that you have overwritten the generate_reparam_config method
+            to apply a reparameterisation. https://num.pyro.ai/en/stable/handlers.html#reparam
+        """
         if data is not None:
             self.data = data.copy()
         else:
