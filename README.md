@@ -3,6 +3,10 @@
 This package provides a wrapper for working with [numpyro](https://num.pyro.ai/) models.
 It aims to remain model-agnostic, but package up a lot of the model fitting code to reduce repetition.
 
+It is intended to make life a bit easier for people who are already familiar with Numpyro and Bayesian modelling.
+It is not intended to fulfil the same high-level wrapper role as packages such as [brms](https://paul-buerkner.github.io/brms/).
+The user is still required to write the model.
+
 ## Getting started
 
 ```
