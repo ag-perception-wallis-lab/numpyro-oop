@@ -90,9 +90,17 @@ def dummy_fitted_hierarchical_reparam(dummy_data):
 def test_init(dummy_data):
     model_with_data = DummyModel(seed=42, data=dummy_data)
     pd.testing.assert_frame_equal(model_with_data.data, dummy_data)
+    assert model_with_data.posterior_samples is None
+    assert model_with_data.posterior_predictive is None
+    assert model_with_data.prior_predictive is None
+    assert model_with_data.arviz_data is None
 
     model_without_data = DummyModel(seed=42)
     assert model_without_data.data is None
+    assert model_without_data.posterior_samples is None
+    assert model_without_data.posterior_predictive is None
+    assert model_without_data.prior_predictive is None
+    assert model_without_data.arviz_data is None
 
 
 def test_cats_to_dict():
@@ -247,3 +255,13 @@ def test_generate_arviz_data_hierarchical(dummy_fitted_hierarchical_reparam):
     dummy_fitted_hierarchical_reparam.generate_arviz_data(dims={"a": ["a_categorical"]})
     assert dummy_fitted_hierarchical_reparam.arviz_data is not None
     # TODO more specific tests to check that group assignment / dims are correct
+
+
+def test_prior_and_posterior_predictive_stored(
+    dummy_fitted, dummy_fitted_hierarchical_reparam
+):
+    # should have been created by previous tests (scope=session). Will fail if only this test is run.
+    assert dummy_fitted.prior_predictive is not None
+    assert dummy_fitted.posterior_predictive is not None
+    assert dummy_fitted_hierarchical_reparam.prior_predictive is not None
+    assert dummy_fitted_hierarchical_reparam.posterior_predictive is not None
