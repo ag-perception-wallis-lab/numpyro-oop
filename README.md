@@ -36,13 +36,6 @@ m1.generate_arviz_data()  # generate an Arviz InferenceData object stored in sel
 
 A more complete demo can be found in `/scripts/demo_1.ipynb`.
 
-
-### TODO before initial release
-
-- [x] group variable plate notation
-- [x] reparameterisation dictionary
-- [x] arviz data export
-
 ### Roadmap after initial release
 
 - [ ] include doctest, improved examples
