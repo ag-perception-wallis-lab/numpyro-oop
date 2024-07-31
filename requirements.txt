@@ -11,7 +11,7 @@ kiwisolver==1.4.5; python_version >= '3.7'
 matplotlib==3.9.1; python_version >= '3.9'
 ml-dtypes==0.4.0; python_version >= '3.9'
 multipledispatch==1.0.0
-numpy==2.0.1; python_version >= '3.12'
+numpy==2.0.1; python_version >= '3.9'
 numpyro==0.15.2; python_version >= '3.9'
 opt-einsum==3.3.0; python_version >= '3.5'
 packaging==24.1; python_version >= '3.8'
