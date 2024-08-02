@@ -17,7 +17,7 @@ The basic idea is that the user defines a new class that inherits from `BaseNump
 and defines (minimally) the model to be fit by overwriting the `model` method:
 
 ```python
-from numpyro-oop import BaseNumpyroModel
+from numpyro_oop import BaseNumpyroModel
 
 class DemoModel(BaseNumpyroModel):
     def model(self, data=None):
