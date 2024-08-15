@@ -208,7 +208,7 @@ class BaseNumpyroModel:
         )
 
         self.rng_key, sub_key = random.split(self.rng_key)
-        samples = predictive(sub_key, data=data, **model_kwargs)
+        samples = predictive(sub_key, data=data, model_kwargs=model_kwargs)
 
         if not new_data:
             if prior:
