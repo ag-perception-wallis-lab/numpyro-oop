@@ -41,7 +41,6 @@ A more complete demo can be found in `/scripts/demo_1.ipynb`.
 - [ ] include doctest, improved examples
 - [ ] demo and tests for multiple group variables
 - [ ] export docs to some static page (readthedocs or similar); detail info on class methods and attributes
-- [ ] CI test setup
 - [ ] Contributor guidelines
 - [ ] Fix type hints via linter checks
 
