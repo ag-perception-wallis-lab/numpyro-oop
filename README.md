@@ -1,5 +1,8 @@
 # An object-oriented interface to numpyro
 
+[![Pytest API Testing](https://github.com/ag-perception-wallis-lab/numpyro-oop/actions/workflows/pytest.yml/badge.svg)](https://github.com/ag-perception-wallis-lab/numpyro-oop/actions/workflows/pytest.yml)
+[![PyPI version](https://badge.fury.io/py/numpyro-oop.svg)](https://badge.fury.io/py/numpyro-oop)
+
 This package provides a wrapper for working with [numpyro](https://num.pyro.ai/) models.
 It aims to remain model-agnostic, but package up a lot of the model fitting code to reduce repetition.
 
