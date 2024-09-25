@@ -36,7 +36,7 @@ class BaseNumpyroModel:
         :param int seed: Random seed
         :param data: Data for the model. Currently only support Pandas dataframes. The model
             method is expected to know what to do with data. Note that a copy of the passed
-            dataframe is taken, to avoid unanticipated effects on the outer-scope dataframe.
+            dataframe is made to avoid unanticipated effects on the outer-scope dataframe.
         :param group_variables: Names of the variables in data that correspond to discrete
             categories to be used for plates in the model (see https://num.pyro.ai/en/stable/primitives.html#plate).
             A demo of plates can be found here: https://num.pyro.ai/en/stable/tutorials/bayesian_hierarchical_linear_regression.html.
@@ -144,7 +144,7 @@ class BaseNumpyroModel:
 
         # https://jax.readthedocs.io/en/latest/jax.random.html
         self.rng_key, sub_key = random.split(self.rng_key)
-        self.mcmc.run(sub_key, data=self.data, **model_kwargs)
+        self.mcmc.run(sub_key, data=self.data, model_kwargs=model_kwargs)
         self.posterior_samples = self.mcmc.get_samples()
 
         if generate_arviz_data:

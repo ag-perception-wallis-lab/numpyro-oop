@@ -17,7 +17,7 @@ The basic idea is that the user defines a new class that inherits from `BaseNump
 and defines (minimally) the model to be fit by overwriting the `model` method:
 
 ```python
-from numpyro-oop import BaseNumpyroModel
+from numpyro_oop import BaseNumpyroModel
 
 class DemoModel(BaseNumpyroModel):
     def model(self, data=None):
@@ -41,7 +41,6 @@ A more complete demo can be found in `/scripts/demo_1.ipynb`.
 - [ ] include doctest, improved examples
 - [ ] demo and tests for multiple group variables
 - [ ] export docs to some static page (readthedocs or similar); detail info on class methods and attributes
-- [ ] CI test setup
 - [ ] Contributor guidelines
 - [ ] Fix type hints via linter checks
 
