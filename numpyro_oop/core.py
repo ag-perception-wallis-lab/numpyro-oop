@@ -144,7 +144,7 @@ class BaseNumpyroModel:
 
         # https://jax.readthedocs.io/en/latest/jax.random.html
         self.rng_key, sub_key = random.split(self.rng_key)
-        self.mcmc.run(sub_key, data=self.data, **model_kwargs)
+        self.mcmc.run(sub_key, data=self.data, model_kwargs=model_kwargs)
         self.posterior_samples = self.mcmc.get_samples()
 
         if generate_arviz_data:
