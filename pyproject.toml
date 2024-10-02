@@ -1,6 +1,6 @@
 [project]
 name = "numpyro-oop"
-version = "0.0.2"
+version = "0.1.0"
 authors = [
   { name="Thomas Wallis", email="thomas.wallis@tu-darmstadt.de" },
 ]
