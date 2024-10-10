@@ -68,7 +68,7 @@ If data is not passed to the `model` object directly then
 Second, note the `sample_conditional` argument and subsequent pattern.
 To use Numpyro's `Predictive` method, we need the ability to set any observed data 
 that a sampling distribution is conditioned upon (typically the likelihood) to be `None`.
-See the [Numpyro docs]() for examples.
+See the [Numpyro docs](https://num.pyro.ai/en/stable/utilities.html#numpyro.infer.util.Predictive) for examples.
 Currently, `numpyro-oop` requires this to be implemented by the user in the model definition 
 in some way; a suggested pattern is shown above.
 
