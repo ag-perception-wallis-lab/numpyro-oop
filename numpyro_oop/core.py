@@ -28,7 +28,7 @@ class BaseNumpyroModel:
         data: Optional[pd.DataFrame] = None,
         group_variables: Optional[list[str] | str] = None,
         create_plates_kwargs: Optional[dict] = None,
-        use_reparam: bool = False,
+        use_reparam: bool = True,
     ) -> None:
         """
         A BaseNumpyroModel provides the basic interface to numpyro-oop.
@@ -42,9 +42,10 @@ class BaseNumpyroModel:
             A demo of plates can be found here: https://num.pyro.ai/en/stable/tutorials/bayesian_hierarchical_linear_regression.html.
             String or list of strings.
         :param create_plates_kwargs: Keyword arguments passed to the internal _create_plates function.
-        :param bool use_reparam: If true, apply the reparameterization specified in the generate_reparam_config
-            method to the model. This anticipates that you have overwritten the generate_reparam_config method
-            to apply a reparameterisation. https://num.pyro.ai/en/stable/handlers.html#reparam
+        :param bool use_reparam: If true, and the generate_reparam_config method returns a
+            configuration dictionary, this will apply the reparameterization to the model.
+            For this to have an effect, overwrite the
+            generate_reparam_config method. https://num.pyro.ai/en/stable/handlers.html#reparam
         """
         if data is not None:
             self.data = data.copy()
@@ -64,8 +65,10 @@ class BaseNumpyroModel:
         else:
             self.plate_dicts = None
 
-        if use_reparam:
-            self.model = reparam(self.model, config=self.generate_reparam_config())
+        reparam_config = self.generate_reparam_config()
+
+        if use_reparam and reparam_config:
+            self.model = reparam(self.model, config=reparam_config)
 
         self.posterior_samples = None
         self.posterior_predictive = None
@@ -315,7 +318,7 @@ class BaseNumpyroModel:
         raise NotImplementedError("You must overrwrite the default model method!")
 
     def generate_reparam_config(self) -> dict:
-        logger.warning(
+        logger.info(
             (
                 "No reparameterization currently defined. "
                 "If you expect reparam=True to have any effect you "
