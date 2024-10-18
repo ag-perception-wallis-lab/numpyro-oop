@@ -20,7 +20,8 @@ classifiers = [
 dependencies = [
   'numpyro ~= 0.15.0',
   'pandas',
-  'arviz'
+  'arviz',
+  'graphviz'
 ]
 
 [project.optional-dependencies]
@@ -29,7 +30,6 @@ dev = [
   'black',
   'jupyterlab',
   'ipykernel',
-  'graphviz',
   'matplotlib',
   'build'
 ]
