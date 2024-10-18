@@ -6,19 +6,34 @@ authors = [
 ]
 description = "A convenient object-oriented wrapper for working with numpyro models."
 readme = "README.md"
-requires-python = ">=3.8"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
 license = { file = "LICENSE" }
 keywords = ["numpyro", "probabilistic programming", "mcmc", "bayesian inference"]
 
-dynamic = ["dependencies", "optional-dependencies"]
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
-optional-dependencies = {dev = { file = ["requirements-dev.txt"] }}
+requires-python = ">=3.10"
+
+classifiers = [
+"Programming Language :: Python :: 3",
+"License :: OSI Approved :: MIT License",
+"Operating System :: OS Independent",
+]
+
+dependencies = [
+  'numpyro ~= 0.15.0',
+  'pandas',
+  'arviz',
+  'graphviz'
+]
+
+[project.optional-dependencies]
+dev = [
+  'pytest',
+  'black',
+  'jupyterlab',
+  'ipykernel',
+  'matplotlib',
+  'build'
+]
+
 
 [build-system]
 requires = ["setuptools>=61.0"]
