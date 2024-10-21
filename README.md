@@ -99,7 +99,7 @@ In this example, the node `theta` in the model will be reparameterized with a lo
 if `use_reparam=True` when the class instance is created. 
 This is handy, because you can then test the effect of your reparameterization by simply setting
 `use_reparam=False` and re-fitting the model.
-See `scripts/demo_1.ipynb` for a 
+See `examples/demo.ipynb` for a 
 working example.
 
 ## Roadmap after initial release
@@ -113,8 +113,6 @@ working example.
 
 ### Development notes
 
-- Update dependencies with `make update-deps`
-- Update and (re)install the environment with `make update-and-install`
-
+Install the library with development dependencies via `pip install -e ".[dev]"`.
 
 
