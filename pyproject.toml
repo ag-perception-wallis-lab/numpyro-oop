@@ -1,6 +1,6 @@
 [project]
 name = "numpyro-oop"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name="Thomas Wallis", email="thomas.wallis@tu-darmstadt.de" },
 ]
@@ -18,10 +18,10 @@ classifiers = [
 ]
 
 dependencies = [
-  'numpyro ~= 0.15.0',
+  'numpyro>=0.15',
   'pandas',
   'arviz',
-  'graphviz'
+  'graphviz',
 ]
 
 [project.optional-dependencies]
